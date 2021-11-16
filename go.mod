@@ -1,4 +1,4 @@
-module github.com/chr-fritz/csi-sshfs
+module github.com/nlemeshko/csi-sshfs
 
 go 1.15
 
