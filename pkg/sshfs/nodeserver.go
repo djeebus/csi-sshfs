@@ -201,6 +201,9 @@ func Mount(user string, host string, port string, dir string, target string, pri
 		"-o", "IdentityFile="+privateKey,
 		"-o", "StrictHostKeyChecking=accept-new",
 		"-o", "UserKnownHostsFile=/dev/null",
+		"-o", "allow_other",
+		"-o", "uid=100",
+		"-o", "gid=0",
 	)
 
 	if len(sshOpts) > 0 {
