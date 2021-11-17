@@ -2,13 +2,14 @@ package sshfs
 
 import (
 	"fmt"
-	"github.com/golang/glog"
 	"io/ioutil"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/golang/glog"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"golang.org/x/net/context"
@@ -17,7 +18,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume/util"
 
-	"github.com/kubernetes-csi/drivers/pkg/csi-common"
+	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
 )
 
 type nodeServer struct {
@@ -204,6 +205,9 @@ func Mount(user string, host string, port string, dir string, target string, pri
 		"-o", "allow_other",
 		"-o", "uid=100",
 		"-o", "gid=0",
+		"-o", "reconnect",
+		"-o", "ServerAliveInterval=15",
+		"-o", "ServerAliveCountMax=3",
 	)
 
 	if len(sshOpts) > 0 {
