@@ -1,13 +1,16 @@
 # mostly from https://github.com/marketplace/actions/build-and-push-docker-images
-jobs:
-  docker:
+on:
+  workflow_call:    
     inputs:
       tag_name: 
         type: string
-        require: true
+        required: true
 
     secrets: inherit
 
+
+jobs:
+  docker:
     runs-on: ubuntu-latest
 
     steps:
