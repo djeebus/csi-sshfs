@@ -14,6 +14,9 @@ jobs:
         id: tag
         run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
 
-      - uses: ./.github/workflows/release.yaml
+      - name: checkout the source code
+        uses: actions/checkout@v2
+
+      - uses: ./.github/workflows/release
         with:
           tag_name: ${{ steps.tag.output.VERSION }}
