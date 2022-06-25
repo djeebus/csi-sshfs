@@ -66,6 +66,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	user := req.GetVolumeContext()["user"]
 	ep := req.GetVolumeContext()["share"]
+	password := req.GetVolumeContext()["password"]
 	privateKey := req.GetVolumeContext()["privateKey"]
 	sshOpts := req.GetVolumeContext()["sshOpts"]
 
@@ -78,7 +79,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, e
 	}
 
-	e = Mount(user, server, port, ep, targetPath, privateKeyPath, sshOpts)
+	e = Mount(user, server, port, ep, targetPath, password, privateKeyPath, sshOpts)
 	if e != nil {
 		if os.IsPermission(e) {
 			return nil, status.Error(codes.PermissionDenied, e.Error())
@@ -189,7 +190,34 @@ func writePrivateKey(secret *v1.Secret) (string, error) {
 	return f.Name(), nil
 }
 
-func Mount(user string, host string, port string, dir string, target string, privateKey string, sshOpts string) error {
+func generateOpts(port, privateKey, sshOpts string) map[string]string {
+	result := make(map[string]string)
+
+	splitOpts := strings.Split(sshOpts, ";")
+	for _, item := range splitOpts {
+		parts := strings.SplitN(item, "=", 1)
+		switch len(parts) {
+		case 0:
+			continue
+		case 1:
+			result[parts[0]] = "True"
+		case 2:
+			result[parts[0]] = parts[1]
+		}
+	}
+
+	if _, ok := result["port"]; !ok {
+		result["port"] = port
+	}
+
+	if _, ok := result["IdentityFile"]; !ok {
+		result["IdentityFile"] = privateKey
+	}
+
+	return result
+}
+
+func Mount(user, host, port, dir, target, password, privateKey, sshOpts string) error {
 	mountCmd := "sshfs"
 	mountArgs := []string{}
 
@@ -198,8 +226,6 @@ func Mount(user string, host string, port string, dir string, target string, pri
 		mountArgs,
 		source,
 		target,
-		"-o", "port="+port,
-		"-o", "IdentityFile="+privateKey,
 		"-o", "StrictHostKeyChecking=accept-new",
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "allow_other",
@@ -210,8 +236,10 @@ func Mount(user string, host string, port string, dir string, target string, pri
 		"-o", "ServerAliveCountMax=3",
 	)
 
-	if len(sshOpts) > 0 {
-		mountArgs = append(mountArgs, "-o", sshOpts)
+	optsMap := generateOpts(port, privateKey, sshOpts)
+
+	for key, val := range optsMap {
+		mountArgs = append(mountArgs, "-o", fmt.Sprintf("%s=%s", key, val))
 	}
 
 	// create target, os.Mkdirall is noop if it exists

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/nlemeshko/csi-sshfs/pkg/sshfs"
+	"github.com/djeebus/csi-sshfs/pkg/sshfs"
 
 	"github.com/spf13/cobra"
 )

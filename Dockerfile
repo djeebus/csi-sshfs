@@ -2,14 +2,14 @@ FROM golang:1.12-alpine3.9 AS  build-env
 RUN apk add --no-cache git
 
 ENV CGO_ENABLED=0, GO111MODULE=on
-WORKDIR /go/src/github.com/nlemeshko/csi-sshfs
+WORKDIR /go/src/github.com/djeebus/csi-sshfs
 
-ADD . /go/src/github.com/nlemeshko/csi-sshfs
+ADD . /go/src/github.com/djeebus/csi-sshfs
 
 RUN go mod download
 RUN export BUILD_TIME=`date -R` && \
-    export VERSION=`cat /go/src/github.com/nlemeshko/csi-sshfs/version.txt 2&> /dev/null` && \
-    go build -o /csi-sshfs -ldflags "-X 'github.com/nlemeshko/csi-sshfs/pkg/sshfs.BuildTime=${BUILD_TIME}' -X 'github.com/nlemeshko/csi-sshfs/pkg/sshfs.Version=${VERSION}'" github.com/nlemeshko/csi-sshfs/cmd/csi-sshfs
+    export VERSION=`cat /go/src/github.com/djeebus/csi-sshfs/version.txt 2&> /dev/null` && \
+    go build -o /csi-sshfs -ldflags "-X 'github.com/djeebus/csi-sshfs/pkg/sshfs.BuildTime=${BUILD_TIME}' -X 'github.com/djeebus/csi-sshfs/pkg/sshfs.Version=${VERSION}'" github.com/djeebus/csi-sshfs/cmd/csi-sshfs
 
 FROM alpine:3.9
 
