@@ -2,6 +2,7 @@ package sshfs
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -236,6 +237,10 @@ func Mount(user, host, port, dir, target, password, privateKey, sshOpts string) 
 		"-o", "ServerAliveCountMax=3",
 	)
 
+	if password != "" {
+		mountArgs = append(mountArgs, "-o", "password_stdin")
+	}
+
 	optsMap := generateOpts(port, privateKey, sshOpts)
 
 	for key, val := range optsMap {
@@ -250,11 +255,38 @@ func Mount(user, host, port, dir, target, password, privateKey, sshOpts string) 
 
 	glog.Infof("executing mount command cmd=%s, args=%s", mountCmd, mountArgs)
 
-	out, err := exec.Command(mountCmd, mountArgs...).CombinedOutput()
+	cmd := exec.Command(mountCmd, mountArgs...)
+
+	if password != "" {
+		if err = pipePasswordIn(cmd, password); err != nil {
+			glog.Errorf("failed to get std in from sshfs: %v", err)
+			return err
+		}
+	}
+
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("mounting failed: %v cmd: '%s %s' output: %q",
 			err, mountCmd, strings.Join(mountArgs, " "), string(out))
 	}
+
+	return nil
+}
+
+func pipePasswordIn(cmd *exec.Cmd, password string) error {
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+
+	defer stdin.Close()
+
+	count, err := io.WriteString(stdin, password)
+	if err != nil {
+		return err
+	}
+
+	glog.Infof("wrote %d password bytes", count)
 
 	return nil
 }
