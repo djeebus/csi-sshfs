@@ -71,13 +71,16 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	privateKey := req.GetVolumeContext()["privateKey"]
 	sshOpts := req.GetVolumeContext()["sshOpts"]
 
-	secret, e := getPublicKeySecret(privateKey)
-	if e != nil {
-		return nil, e
-	}
-	privateKeyPath, e := writePrivateKey(secret)
-	if e != nil {
-		return nil, e
+	privateKeyPath := ""
+	if privateKey != "" {
+		secret, e := getPublicKeySecret(privateKey)
+		if e != nil {
+			return nil, e
+		}
+		privateKeyPath, e = writePrivateKey(secret)
+		if e != nil {
+			return nil, e
+		}
 	}
 
 	e = Mount(user, server, port, ep, targetPath, password, privateKeyPath, sshOpts)
@@ -143,8 +146,11 @@ func validateVolumeContext(req *csi.NodePublishVolumeRequest) error {
 	if _, ok := req.GetVolumeContext()["share"]; !ok {
 		return status.Errorf(codes.InvalidArgument, "missing volume context value: share")
 	}
-	if _, ok := req.GetVolumeContext()["privateKey"]; !ok {
-		return status.Errorf(codes.InvalidArgument, "missing volume context value: privateKey")
+
+	_, pkOk := req.GetVolumeContext()["privateKey"]
+	_, pwOk := req.GetVolumeContext()["password"]
+	if !(pkOk || pwOk) {
+		return status.Errorf(codes.InvalidArgument, "missing volume context value: privateKey or password")
 	}
 	return nil
 }
@@ -211,7 +217,7 @@ func generateOpts(port, privateKey, sshOpts string) map[string]string {
 		result["port"] = port
 	}
 
-	if _, ok := result["IdentityFile"]; !ok {
+	if _, ok := result["IdentityFile"]; !ok && privateKey != "" {
 		result["IdentityFile"] = privateKey
 	}
 
