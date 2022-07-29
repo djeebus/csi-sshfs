@@ -1,8 +1,8 @@
 # mostly from https://github.com/marketplace/actions/build-and-push-docker-images
 on:
-  workflow_call:    
+  workflow_call:
     inputs:
-      tag_name: 
+      tag_name:
         type: string
         required: true
 
@@ -23,7 +23,7 @@ jobs:
       - name: login to registry
         uses: docker/login-action@v1
         with:
-          registry: registry.office.lombrozo.net
+          registry: registry.thehideaway.social
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
