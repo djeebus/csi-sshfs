@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: checkout the source code
+        uses: actions/checkout@v2
+
       - name: Extract tag name
         id: tag
         run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
-
-      - name: checkout the source code
-        uses: actions/checkout@v2
 
       - name: set up QEMU
         uses: docker/setup-qemu-action@v1
