@@ -35,4 +35,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: djeebus/csi-sshfs:${{ steps.tag.output.VERSION }}
+          tags: registry.thehideaway.social/djeebus/csi-sshfs:${{ steps.tag.output.VERSION }}
