@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 
 	"github.com/golang/glog"
@@ -197,8 +198,10 @@ func writePrivateKey(secret *v1.Secret) (string, error) {
 	return f.Name(), nil
 }
 
-func generateOpts(port, privateKey, sshOpts string) map[string]string {
-	result := make(map[string]string)
+func parseRawOpts(result map[string]string, sshOpts string) {
+	if sshOpts == "" {
+		return
+	}
 
 	splitOpts := strings.Split(sshOpts, ";")
 	for _, item := range splitOpts {
@@ -207,51 +210,16 @@ func generateOpts(port, privateKey, sshOpts string) map[string]string {
 		case 0:
 			continue
 		case 1:
-			result[parts[0]] = "True"
+			result[parts[0]] = ""
 		case 2:
 			result[parts[0]] = parts[1]
 		}
 	}
-
-	if _, ok := result["port"]; !ok {
-		result["port"] = port
-	}
-
-	if _, ok := result["IdentityFile"]; !ok && privateKey != "" {
-		result["IdentityFile"] = privateKey
-	}
-
-	return result
 }
 
 func Mount(user, host, port, dir, target, password, privateKey, sshOpts string) error {
 	mountCmd := "sshfs"
-	mountArgs := []string{}
-
-	source := fmt.Sprintf("%s@%s:%s", user, host, dir)
-	mountArgs = append(
-		mountArgs,
-		source,
-		target,
-		"-o", "StrictHostKeyChecking=accept-new",
-		"-o", "UserKnownHostsFile=/dev/null",
-		"-o", "allow_other",
-		"-o", "uid=100",
-		"-o", "gid=0",
-		"-o", "reconnect",
-		"-o", "ServerAliveInterval=15",
-		"-o", "ServerAliveCountMax=3",
-	)
-
-	if password != "" {
-		mountArgs = append(mountArgs, "-o", "password_stdin")
-	}
-
-	optsMap := generateOpts(port, privateKey, sshOpts)
-
-	for key, val := range optsMap {
-		mountArgs = append(mountArgs, "-o", fmt.Sprintf("%s=%s", key, val))
-	}
+	mountArgs := generateMountArgs(user, host, port, dir, target, password, privateKey, sshOpts)
 
 	// create target, os.Mkdirall is noop if it exists
 	err := os.MkdirAll(target, 0750)
@@ -277,6 +245,54 @@ func Mount(user, host, port, dir, target, password, privateKey, sshOpts string) 
 	}
 
 	return nil
+}
+
+func generateMountArgs(user, host, port, dir, target, password, privateKey, sshOpts string) []string {
+
+	optsMap := map[string]string{
+		"StrictHostKeyChecking": "accept-new",
+		"UserKnownHostsFile":    "/dev/null",
+		"allow_other":           "",
+		"uid":                   "100",
+		"gid":                   "0",
+		"reconnect":             "",
+		"ServerAliveInterval":   "15",
+		"ServerAliveCountMax":   "3",
+		"port":                  port,
+		"IdentityFile":          privateKey,
+	}
+
+	if password != "" {
+		optsMap["password_stdin"] = ""
+	}
+
+	parseRawOpts(optsMap, sshOpts)
+
+	source := fmt.Sprintf("%s@%s:%s", user, host, dir)
+	mountArgs := []string{source, target}
+
+	// just to simplify testing
+	sortedKeys := getSortedKeys(optsMap)
+	for _, key := range sortedKeys {
+		val := optsMap[key]
+		var opt string
+		if val != "" {
+			opt = fmt.Sprintf("%s=%s", key, val)
+		} else {
+			opt = key
+		}
+		mountArgs = append(mountArgs, "-o", opt)
+	}
+	return mountArgs
+}
+
+func getSortedKeys(optsMap map[string]string) []string {
+	var keys []string
+	for key := range optsMap {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func pipePasswordIn(cmd *exec.Cmd, password string) error {
