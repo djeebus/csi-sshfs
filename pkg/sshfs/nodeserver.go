@@ -259,7 +259,10 @@ func generateMountArgs(user, host, port, dir, target, password, privateKey, sshO
 		"ServerAliveInterval":   "15",
 		"ServerAliveCountMax":   "3",
 		"port":                  port,
-		"IdentityFile":          privateKey,
+	}
+
+	if privateKey != "" {
+		optsMap["IdentityFile"] = privateKey
 	}
 
 	if password != "" {
