@@ -205,7 +205,7 @@ func parseRawOpts(result map[string]string, sshOpts string) {
 
 	splitOpts := strings.Split(sshOpts, ";")
 	for _, item := range splitOpts {
-		parts := strings.SplitN(item, "=", 1)
+		parts := strings.SplitN(item, "=", 2)
 		switch len(parts) {
 		case 0:
 			continue

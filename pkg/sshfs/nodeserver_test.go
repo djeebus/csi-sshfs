@@ -53,4 +53,21 @@ func TestGenerateMountArgs(t *testing.T) {
 		}, result)
 	})
 
+	t.Run("can override defaults", func(t *testing.T) {
+		result := generateMountArgs("user", "host", "port", "directory", "target", "a-password", "", "uid=33;gid=33")
+		require.Equal(t, []string{
+			"user@host:directory", "target",
+			"-o", "ServerAliveCountMax=3",
+			"-o", "ServerAliveInterval=15",
+			"-o", "StrictHostKeyChecking=accept-new",
+			"-o", "UserKnownHostsFile=/dev/null",
+			"-o", "allow_other",
+			"-o", "gid=33",
+			"-o", "password_stdin",
+			"-o", "port=port",
+			"-o", "reconnect",
+			"-o", "uid=33",
+		}, result)
+	})
+
 }
