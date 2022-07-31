@@ -115,14 +115,14 @@ func parseVolumeContext(req *csi.NodePublishVolumeRequest) (config, error) {
         config.sshOptsMap = parseRawOpts(sshOpts)
     }
 
-    if err := getCredentials(config, configMap); err != nil {
+    if err := getCredentials(&config, configMap); err != nil {
         return config, err
     }
 
     return config, nil
 }
 
-func parseCredentials(credsPath string, model config) error {
+func parseCredentials(credsPath string, model *config) error {
     credsSecret, e := getSecret(credsPath)
     if e != nil {
         return e
@@ -130,8 +130,7 @@ func parseCredentials(credsPath string, model config) error {
 
     var ok bool
     if credsSecret.Type == v1.SecretTypeSSHAuth {
-        model.username, ok = getStringDataFromSecret(credsSecret, v1.BasicAuthUsernameKey)
-        if !ok {
+        if model.username, ok = getStringDataFromSecret(credsSecret, v1.BasicAuthUsernameKey); !ok {
             return missingSecretKeyError(v1.BasicAuthUsernameKey)
         }
 
@@ -167,7 +166,7 @@ func getStringDataFromSecret(secret *v1.Secret, key string) (string, bool) {
     return string(data), true
 }
 
-func getCredentials(model config, config map[string]string) error {
+func getCredentials(model *config, config map[string]string) error {
     credsPath := config["credentials"]
     if credsPath != "" {
         return parseCredentials(credsPath, model)
@@ -176,7 +175,7 @@ func getCredentials(model config, config map[string]string) error {
     return parseLegacyCreds(config, model)
 }
 
-func parseLegacyCreds(config map[string]string, model config) error {
+func parseLegacyCreds(config map[string]string, model *config) error {
     privateKey, ok := config["privateKey"]
     if !ok {
         return missingVolumeContextKeyError("privateKey")
