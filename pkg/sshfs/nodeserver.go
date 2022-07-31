@@ -130,7 +130,7 @@ func parseCredentials(credsPath string, model config) error {
 
     var ok bool
     if credsSecret.Type == v1.SecretTypeSSHAuth {
-        model.username, ok = credsSecret.StringData[v1.BasicAuthUsernameKey]
+        model.username, ok = getStringDataFromSecret(credsSecret, v1.BasicAuthUsernameKey)
         if !ok {
             return missingSecretKeyError(v1.BasicAuthUsernameKey)
         }
@@ -145,10 +145,10 @@ func parseCredentials(credsPath string, model config) error {
     }
 
     if credsSecret.Type == v1.SecretTypeBasicAuth {
-        if model.username, ok = credsSecret.StringData[v1.BasicAuthUsernameKey]; !ok {
+        if model.username, ok = getStringDataFromSecret(credsSecret, v1.BasicAuthUsernameKey); !ok {
             return missingSecretKeyError(v1.BasicAuthUsernameKey)
         }
-        if model.password, ok = credsSecret.StringData[v1.BasicAuthPasswordKey]; !ok {
+        if model.password, ok = getStringDataFromSecret(credsSecret, v1.BasicAuthPasswordKey); !ok {
             return missingSecretKeyError(v1.BasicAuthPasswordKey)
         }
 
@@ -156,6 +156,15 @@ func parseCredentials(credsPath string, model config) error {
     }
 
     return status.Errorf(codes.InvalidArgument, "invalid secret type: %s", credsSecret.Type)
+}
+
+func getStringDataFromSecret(secret *v1.Secret, key string) (string, bool) {
+    data, ok := secret.Data[key]
+    if !ok {
+        return "", false
+    }
+
+    return string(data), true
 }
 
 func getCredentials(model config, config map[string]string) error {
