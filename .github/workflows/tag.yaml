@@ -23,7 +23,7 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build the hello-docker Docker image
+      - name: Build and push the Docker image
         run: |
           docker build . --tag ghcr.io/djeebus/csi-sshfs:${{ env.RELEASE_VERSION }}
           docker push ghcr.io/djeebus/csi-sshfs:${{ env.RELEASE_VERSION }}
